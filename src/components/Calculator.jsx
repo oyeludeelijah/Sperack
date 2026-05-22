@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { M3 } from "@/lib/theme";
 
 // Always mounted — state survives open/close on every device.
-export default function Calculator({ show, onClose }) {
+export default function Calculator({ show, onClose, appBalance = 0 }) {
   // ── Calc state (persists across open/close) ───────────────────────
   const [display, setDisplay] = useState("0");
   const [operator, setOperator] = useState(null);
@@ -117,6 +117,16 @@ export default function Calculator({ show, onClose }) {
     setOperator(null); setPrevValue(null); setWaitingForOperand(true);
   };
 
+  const pasteBalance = () => {
+    const balNum = parseFloat(appBalance);
+    if (isNaN(balNum)) {
+      setDisplay("0");
+    } else {
+      setDisplay(fmtResult(balNum));
+    }
+    setWaitingForOperand(false);
+  };
+
   // ── Button definitions ────────────────────────────────────────────
   const btns = [
     { l: "C",  a: clear,                     t: "fn" },
@@ -135,7 +145,8 @@ export default function Calculator({ show, onClose }) {
     { l: "2",  a: () => inputDigit("2"),      t: "n"  },
     { l: "3",  a: () => inputDigit("3"),      t: "n"  },
     { l: "+",  a: () => handleOperator("+"), t: "op" },
-    { l: "0",  a: () => inputDigit("0"),      t: "n", wide: true },
+    { l: "0",  a: () => inputDigit("0"),      t: "n"  },
+    { l: "BAL", a: pasteBalance,              t: "bal" },
     { l: ".",  a: inputDecimal,               t: "n"  },
     { l: "=",  a: handleEquals,              t: "eq" },
   ];
@@ -146,17 +157,19 @@ export default function Calculator({ show, onClose }) {
     borderRadius: 14,
     border: "none",
     cursor: "pointer",
-    fontSize: 18,
-    fontWeight: t === "eq" ? 700 : 500,
+    fontSize: t === "bal" ? 14 : 18,
+    fontWeight: t === "eq" || t === "bal" ? 700 : 500,
     transition: "opacity 0.1s, transform 0.08s",
     background:
       t === "fn" ? M3.surfaceContainerHighest :
       t === "op" ? M3.primaryContainer :
       t === "eq" ? M3.primary :
+      t === "bal" ? M3.primaryContainer :
                    M3.surfaceContainerHigh,
     color:
       t === "op" ? M3.onPrimaryContainer :
       t === "eq" ? "#21005D" :
+      t === "bal" ? M3.primary :
                    M3.onSurface,
   });
 

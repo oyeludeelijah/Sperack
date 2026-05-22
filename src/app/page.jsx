@@ -107,11 +107,12 @@ export default function Dashboard() {
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
-    <div className="space-y-6">
+    <>
       {/* Calculator — always mounted so state persists across open/close */}
-      <Calculator show={showCalc} onClose={() => setShowCalc(false)} />
+      <Calculator show={showCalc} onClose={() => setShowCalc(false)} appBalance={balance} />
 
-      {/* Header */}
+      <div className="space-y-6">
+        {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: M3.onSurface }}>{greeting} 👋</h1>
@@ -451,5 +452,6 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+    </>
   );
 }

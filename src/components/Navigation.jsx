@@ -18,14 +18,44 @@ export default function Navigation() {
   const { isDark, toggleTheme } = useTheme();
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-50 md:top-0 md:right-auto md:w-64 md:h-screen flex flex-row md:flex-col justify-between md:justify-start items-center md:items-stretch px-2 py-2 md:p-4 gap-1 md:gap-2"
-      style={{
-        background: M3.surfaceContainer,
-        borderRight: `1px solid ${M3.outlineAlpha22}`,
-        borderTop: `1px solid ${M3.outlineAlpha22}`,
-      }}
-    >
+    <>
+      {/* Mobile Top Theme Toggle */}
+      <button
+        onClick={toggleTheme}
+        className="md:hidden fixed top-4 right-4 z-[60] flex items-center justify-center rounded-full transition-all duration-200 shadow-md"
+        style={{
+          width: 40,
+          height: 40,
+          background: M3.surfaceContainerHigh,
+          color: M3.onSurfaceVariant,
+          border: `1px solid ${M3.outlineVariant}`,
+          backdropFilter: "blur(8px)",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = M3.primaryAlpha14)}
+        onMouseLeave={(e) => (e.currentTarget.style.background = M3.surfaceContainerHigh)}
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span
+            key={isDark ? "sun-m" : "moon-m"}
+            initial={{ rotate: -90, opacity: 0, scale: 0.6 }}
+            animate={{ rotate: 0, opacity: 1, scale: 1 }}
+            exit={{ rotate: 90, opacity: 0, scale: 0.6 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            style={{ display: "flex" }}
+          >
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+          </motion.span>
+        </AnimatePresence>
+      </button>
+
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 md:top-0 md:right-auto md:w-64 md:h-screen flex flex-row md:flex-col justify-between md:justify-start items-center md:items-stretch px-2 py-2 md:p-4 gap-1 md:gap-2"
+        style={{
+          background: M3.surfaceContainer,
+          borderRight: `1px solid ${M3.outlineAlpha22}`,
+          borderTop: `1px solid ${M3.outlineAlpha22}`,
+        }}
+      >
       {/* Logo */}
       <div className="hidden md:flex items-center gap-3 px-3 py-2 mb-0 md:mb-6">
         <div
@@ -93,27 +123,6 @@ export default function Navigation() {
             </motion.div>
           );
         })}
-
-        {/* Theme toggle mobile inline */}
-        <button
-          onClick={toggleTheme}
-          className="md:hidden relative flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 flex-1"
-          style={{ color: M3.onSurfaceVariant }}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span
-              key={isDark ? "sun-m" : "moon-m"}
-              initial={{ rotate: -90, opacity: 0, scale: 0.6 }}
-              animate={{ rotate: 0, opacity: 1, scale: 1 }}
-              exit={{ rotate: 90, opacity: 0, scale: 0.6 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              style={{ display: "flex" }}
-            >
-              {isDark ? <Sun size={24} /> : <Moon size={24} />}
-            </motion.span>
-          </AnimatePresence>
-          <span className="text-[10px] font-medium">{isDark ? "Light" : "Dark"}</span>
-        </button>
 
         {/* Sign out mobile inline */}
         <button
@@ -250,5 +259,6 @@ export default function Navigation() {
         </button>
       </div>
     </nav>
+    </>
   );
 }
