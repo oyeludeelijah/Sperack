@@ -1,0 +1,17 @@
+<!-- SPERACK ICON — DARK MODE -->
+<!-- Three sizes provided. Use the one that fits your context. -->
+
+<!-- ─── 72×72 (full / marketing) ─── -->
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72" role="img">
+  <title>Sperack icon</title>
+  <desc>Sperack 3x3 grid mark, dark mode, 72px</desc>
+  <rect x="0"  y="0"  width="20" height="20" rx="3" fill="#36343B" stroke="#605C6B" stroke-width="0.5"/>
+  <rect x="26" y="0"  width="20" height="20" rx="3" fill="#36343B" stroke="#605C6B" stroke-width="0.5"/>
+  <rect x="52" y="0"  width="20" height="20" rx="3" fill="#36343B" stroke="#605C6B" stroke-width="0.5"/>
+  <rect x="0"  y="26" width="20" height="20" rx="3" fill="#36343B" stroke="#605C6B" stroke-width="0.5"/>
+  <rect x="26" y="26" width="20" height="20" rx="3" fill="#36343B" stroke="#605C6B" stroke-width="0.5"/>
+  <rect x="52" y="26" width="20" height="20" rx="3" fill="#36343B" stroke="#605C6B" stroke-width="0.5"/>
+  <rect x="0"  y="52" width="20" height="20" rx="3" fill="#36343B" stroke="#605C6B" stroke-width="0.5"/>
+  <rect x="26" y="52" width="20" height="20" rx="3" fill="#36343B" stroke="#605C6B" stroke-width="0.5"/>
+  <rect x="52" y="52" width="20" height="20" rx="3" fill="#D0BCFF"/>
+</svg>

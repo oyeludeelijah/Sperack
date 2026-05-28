@@ -10,6 +10,32 @@ export default function Calculator({ show, onClose, appBalance = 0 }) {
   const [operator, setOperator] = useState(null);
   const [prevValue, setPrevValue] = useState(null);
   const [waitingForOperand, setWaitingForOperand] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const backspace = () => {
+    if (waitingForOperand) return;
+    if (display === "Error" || display === "Infinity" || display === "-Infinity") {
+      setDisplay("0");
+      return;
+    }
+    const next = display.slice(0, -1);
+    if (next === "" || next === "-") {
+      setDisplay("0");
+    } else {
+      setDisplay(next);
+    }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(display)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      })
+      .catch((err) => {
+        console.error("Failed to copy: ", err);
+      });
+  };
 
   // ── Layout ────────────────────────────────────────────────────────
   const [isMobile, setIsMobile] = useState(false);
@@ -130,8 +156,8 @@ export default function Calculator({ show, onClose, appBalance = 0 }) {
   // ── Button definitions ────────────────────────────────────────────
   const btns = [
     { l: "C",  a: clear,                     t: "fn" },
-    { l: "±",  a: toggleSign,                t: "fn" },
-    { l: "%",  a: percentage,                t: "fn" },
+    { l: "⌫",  a: backspace,                 t: "fn" },
+    { l: copied ? "COPIED" : "COPY", a: copyToClipboard, t: "copy" },
     { l: "÷",  a: () => handleOperator("÷"), t: "op" },
     { l: "7",  a: () => inputDigit("7"),      t: "n"  },
     { l: "8",  a: () => inputDigit("8"),      t: "n"  },
@@ -157,19 +183,21 @@ export default function Calculator({ show, onClose, appBalance = 0 }) {
     borderRadius: 14,
     border: "none",
     cursor: "pointer",
-    fontSize: t === "bal" ? 14 : 18,
-    fontWeight: t === "eq" || t === "bal" ? 700 : 500,
+    fontSize: t === "bal" || t === "copy" ? (t === "copy" && copied ? 11 : 14) : 18,
+    fontWeight: t === "eq" || t === "bal" || t === "copy" ? 700 : 500,
     transition: "opacity 0.1s, transform 0.08s",
     background:
       t === "fn" ? M3.surfaceContainerHighest :
       t === "op" ? M3.primaryContainer :
       t === "eq" ? M3.primary :
       t === "bal" ? M3.primaryContainer :
+      t === "copy" ? (copied ? M3.greenContainer : M3.surfaceContainerHighest) :
                    M3.surfaceContainerHigh,
     color:
       t === "op" ? M3.onPrimaryContainer :
       t === "eq" ? "#21005D" :
       t === "bal" ? M3.primary :
+      t === "copy" ? (copied ? M3.green : M3.primary) :
                    M3.onSurface,
   });
 

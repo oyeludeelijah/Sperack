@@ -32,7 +32,7 @@ export default defineConfig({
   logLevel: 'info',
   plugins: [
     nextPublicProcessEnv(),
-    restartEnvFileChange(), 
+    restartEnvFileChange(),
     babel({
       include: ['src/**/*.{js,jsx,ts,tsx}'], // or RegExp: /src\/.*\.[tj]sx?$/
       exclude: /node_modules/, // skip everything else
@@ -75,7 +75,7 @@ export default defineConfig({
   server: {
     allowedHosts: true,
     host: '0.0.0.0',
-    port: 3000,
+    port: 4000,
     hmr: {
       overlay: false,
     },

@@ -49,7 +49,7 @@ export default function LoginPage() {
         navigate('/');
       } else {
         await signUp(email, password);
-        toast.success('Account created! Welcome to FinanceAI.');
+        toast.success('Account created! Welcome to Sperack.');
         navigate('/');
       }
     } catch (error) {
@@ -107,12 +107,11 @@ export default function LoginPage() {
           <div className="w-full max-w-[360px] mx-auto">
             {/* Logo */}
             <div className="mb-6 flex items-center">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ background: M3.primaryContainer }}
-              >
-                <span style={{ color: M3.onPrimaryContainer, fontWeight: 700, fontSize: "1.2rem" }}>F</span>
-              </div>
+              <img
+                src="/sperack-icon-dark.svg"
+                alt="Sperack"
+                style={{ width: 40, height: 40 }}
+              />
             </div>
 
             <div className="mb-8">
@@ -120,7 +119,7 @@ export default function LoginPage() {
                 {isLogin ? 'Welcome Back' : 'Get Started'}
               </h2>
               <p className="text-sm" style={{ color: M3.onSurfaceVariant }}>
-                Welcome to FinanceAI — Let's get started
+                Welcome to Sperack — Let's get started
               </p>
             </div>
 
@@ -140,7 +139,7 @@ export default function LoginPage() {
                     color: M3.onSurface,
                     outline: 'none',
                   }}
-                  placeholder="hi@financeai.com"
+                  placeholder="hi@sperack.com"
                   onFocus={(e) => e.target.style.border = `1px solid ${M3.primary}`}
                   onBlur={(e) => e.target.style.border = `1px solid ${M3.outline}`}
                   required

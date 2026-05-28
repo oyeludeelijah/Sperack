@@ -9,9 +9,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { ThemeProvider } from "@/context/ThemeContext";
 
 export const metadata = {
-  title: "FinanceAI - Personal Finance Assistant",
+  title: "Sperack - Personal Finance Tracker",
   description:
-    "Track your spending, set budgets, and get AI-powered financial advice",
+    "Track your spending, set budgets, and take control of your financial future.",
 };
 
 function AppShell({ children }) {
