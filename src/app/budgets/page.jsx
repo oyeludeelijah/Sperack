@@ -108,46 +108,46 @@ export default function BudgetsPage() {
             style={{ overflow: "hidden", ...card, background: M3.surfaceContainer }}
             className="p-4 md:p-6"
             onSubmit={(e) => {
-            e.preventDefault();
-            addBudget(formData, {
-              onSuccess: () => {
-                setFormData({ category: "Food", limit_amount: "" });
-                setShowAdd(false);
-              }
-            });
-          }}
-        >
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold" style={{ color: M3.onSurface }}>Set Daily Budget</h3>
-            <button type="button" onClick={() => setShowAdd(false)} style={{ color: M3.onSurfaceVariant }}>
-              <X size={18} />
-            </button>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <select
-              style={inputStyle}
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-            >
-              {["Food", "Transport", "Shopping", "Housing", "Entertainment"].map((c) => (
-                <option key={c} style={{ background: M3.surfaceContainerHighest }}>{c}</option>
-              ))}
-            </select>
-            <input
-              type="number"
-              placeholder={`Daily limit (${symbol})`}
-              style={inputStyle}
-              value={formData.limit_amount}
-              onChange={(e) => setFormData({ ...formData, limit_amount: e.target.value })}
-            />
-            <button
-              type="submit"
-              className="px-8 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap min-h-[48px]"
-              style={{ background: M3.primary, color: "#21005D", minWidth: 100 }}
-            >
-              {isAdding ? "Saving…" : "Create"}
-            </button>
-          </div>
+              e.preventDefault();
+              addBudget(formData, {
+                onSuccess: () => {
+                  setFormData({ category: "Food", limit_amount: "" });
+                  setShowAdd(false);
+                }
+              });
+            }}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold" style={{ color: M3.onSurface }}>Set Daily Budget</h3>
+              <button type="button" onClick={() => setShowAdd(false)} style={{ color: M3.onSurfaceVariant }}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <select
+                style={inputStyle}
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              >
+                {["Food", "Transport", "Shopping", "Housing", "Entertainment"].map((c) => (
+                  <option key={c} style={{ background: M3.surfaceContainerHighest }}>{c}</option>
+                ))}
+              </select>
+              <input
+                type="number"
+                placeholder={`Daily limit (${symbol})`}
+                style={inputStyle}
+                value={formData.limit_amount}
+                onChange={(e) => setFormData({ ...formData, limit_amount: e.target.value })}
+              />
+              <button
+                type="submit"
+                className="px-8 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap min-h-[48px]"
+                style={{ background: M3.primary, color: "#21005D", minWidth: 100 }}
+              >
+                {isAdding ? "Saving…" : "Create"}
+              </button>
+            </div>
           </motion.form>
         )}
       </AnimatePresence>
