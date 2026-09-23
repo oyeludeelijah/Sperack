@@ -26,11 +26,13 @@ function AppShell({ children }) {
     );
   }
 
-  if (!user && location.pathname !== '/login') {
+  const isAuthRoute = location.pathname === '/login' || location.pathname === '/reset-password';
+
+  if (!user && !isAuthRoute) {
     return <Navigate to="/login" replace />;
   }
 
-  if (location.pathname === '/login') {
+  if (isAuthRoute) {
     return children;
   }
 
