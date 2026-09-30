@@ -1,20 +1,3 @@
-/**
- * Calculates the total income, expenses, and balance for a set of transactions.
- * @param {Array} transactions 
- * @returns {Object} { income, expense, balance }
- */
-export function calculateTotals(transactions) {
-  const stats = transactions.reduce(
-    (acc, t) => {
-      const amt = parseFloat(t.amount || 0);
-      if (t.type === "income") acc.income += amt;
-      else acc.expense += amt;
-      return acc;
-    },
-    { income: 0, expense: 0 }
-  );
-  return { ...stats, balance: stats.income - stats.expense };
-}
 
 /**
  * Calculates today's total spending across all expense transactions.

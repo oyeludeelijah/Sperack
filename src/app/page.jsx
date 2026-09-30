@@ -2,14 +2,15 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Calculator from "@/components/Calculator";
 
-import { Plus, ArrowUpRight, ArrowDownLeft, Wallet, TrendingUp, TrendingDown, ChevronRight, X, Trash2, Calculator as CalcIcon } from "lucide-react";
+import { Plus, ArrowUpRight, ArrowDownLeft, Wallet, ChevronRight, X, Trash2, Calculator as CalcIcon } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, startOfMonth } from "date-fns";
 import { useAuth } from "@/hooks/useAuth.jsx";
 import { useCurrency } from "@/utils/useCurrency";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useBudgets } from "@/hooks/useBudgets";
-import { calculateTotals, calculateDailySpent, calculateTotalDailyLimit } from "@/utils/financeMath";
+import { useAllTimeTotals } from "@/hooks/useAllTimeTotals";
+import { calculateDailySpent, calculateTotalDailyLimit } from "@/utils/financeMath";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, PieChart, Pie, Legend,
@@ -73,10 +74,17 @@ export default function Dashboard() {
 
   const [formData, setFormData] = useState({ amount: "", description: "", category: "Food", type: "expense" });
 
-  const { income, expense: totalExpense, balance } = calculateTotals(transactions);
+  const { income, expense: totalExpense, balance } = useAllTimeTotals();
   const todaySpent = calculateDailySpent(transactions);
   const totalDailyLimit = calculateTotalDailyLimit(budgets);
   const dailySafeToSpend = totalDailyLimit - todaySpent;
+
+  // This month income / expense — computed from local transaction list
+  const monthStart = startOfMonth(new Date());
+  const thisMonthTxns = transactions.filter((t) => new Date(t.created_at) >= monthStart);
+  const thisMonthIncome = thisMonthTxns.filter((t) => t.type === "income").reduce((s, t) => s + parseFloat(t.amount), 0);
+  const thisMonthExpense = thisMonthTxns.filter((t) => t.type === "expense").reduce((s, t) => s + parseFloat(t.amount), 0);
+  const thisMonthNet = thisMonthIncome - thisMonthExpense;
 
   // Money flow chart — last 6 months
   const monthlyData = (() => {
@@ -216,7 +224,7 @@ export default function Dashboard() {
           )}
         </AnimatePresence>
 
-        {/* Safe-to-Spend Hero */}
+        {/* All-Time Net Position Hero */}
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -230,39 +238,103 @@ export default function Dashboard() {
             boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
           }}
         >
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+          <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#D0BCFFaa" }}>All-Time Net Position</p>
+          <div className="flex flex-col sm:flex-row justify-between items-end gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: "#D0BCFFaa" }}>Current Balance</p>
               <h2 className="text-4xl font-bold" style={{ color: "#fff" }}>
-                {symbol}{Math.abs(balance).toLocaleString()}
+                {balance < 0 ? "-" : ""}{symbol}{Math.abs(balance).toLocaleString()}
               </h2>
               <p className="text-xs mt-2" style={{ color: "#ffffff99" }}>
-                {balance < 0 ? "⚠️ You're spending more than you earn" : "After all your recorded expenses"}
+                {balance < 0 ? "⚠️ Total expenses exceed total income" : "Total income minus total expenses, all time"}
               </p>
             </div>
-            <div className="flex sm:block gap-4 text-left sm:text-right w-full sm:w-auto mt-2 sm:mt-0 space-y-0 sm:space-y-1 justify-between" style={{ color: "#ffffff99" }}>
-              <p className="text-[10px] md:text-xs">Spent Today <br className="sm:hidden" /><span className="text-white font-semibold">{symbol}{todaySpent.toLocaleString()}</span></p>
-              <p className="text-[10px] md:text-xs">Safe to Spend <br className="sm:hidden" /><span className="text-white font-semibold" style={{ color: dailySafeToSpend < 0 ? "#FF6B6B" : "#fff" }}>{symbol}{dailySafeToSpend.toLocaleString()}</span></p>
-              <p className="text-[10px] md:text-xs">Daily Limit <br className="sm:hidden" /><span className="text-white font-semibold">{symbol}{totalDailyLimit.toLocaleString()}</span></p>
+            <div className="flex sm:flex-col gap-6 sm:gap-1 sm:text-right" style={{ color: "#ffffff99" }}>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider">Total Income</p>
+                <p className="text-sm font-semibold" style={{ color: "#A7F3D0" }}>{symbol}{income.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider">Total Expenses</p>
+                <p className="text-sm font-semibold" style={{ color: "#FCA5A5" }}>{symbol}{totalExpense.toLocaleString()}</p>
+              </div>
             </div>
           </div>
         </motion.div>
 
-        {/* 4-Column KPI widgets */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Net Balance" value={`${symbol}${balance.toLocaleString()}`}
+        {/* Two-column: This Month + Daily Budget */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          {/* This Month */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12, duration: 0.32, ease: "easeOut" }}
+            style={{ ...card, padding: "20px 24px" }}
+          >
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: M3.onSurfaceVariant }}>This Month</p>
+            <p
+              className="text-3xl font-bold mb-1"
+              style={{ color: thisMonthNet >= 0 ? M3.green : M3.error }}
+            >
+              {thisMonthNet >= 0 ? "+" : "-"}{symbol}{Math.abs(thisMonthNet).toLocaleString()}
+            </p>
+            <p className="text-xs mb-4" style={{ color: M3.onSurfaceVariant }}>
+              {thisMonthNet >= 0 ? "Positive month so far" : "Spending ahead of income this month"}
+            </p>
+            <div className="flex gap-6">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: M3.onSurfaceVariant }}>Income</p>
+                <p className="text-sm font-semibold" style={{ color: M3.green }}>{symbol}{thisMonthIncome.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: M3.onSurfaceVariant }}>Expenses</p>
+                <p className="text-sm font-semibold" style={{ color: M3.error }}>{symbol}{thisMonthExpense.toLocaleString()}</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Daily Budget */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.32, ease: "easeOut" }}
+            style={{ ...card, padding: "20px 24px" }}
+          >
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: M3.onSurfaceVariant }}>Today's Budget</p>
+            <p
+              className="text-3xl font-bold mb-1"
+              style={{ color: dailySafeToSpend >= 0 ? M3.green : M3.error }}
+            >
+              {dailySafeToSpend < 0 ? "-" : ""}{symbol}{Math.abs(dailySafeToSpend).toLocaleString()}
+            </p>
+            <p className="text-xs mb-4" style={{ color: M3.onSurfaceVariant }}>
+              {totalDailyLimit === 0
+                ? "No daily budgets set — go to Budgets to add limits"
+                : dailySafeToSpend >= 0
+                  ? "Left to spend today within your limits"
+                  : "Over today's budget limit"}
+            </p>
+            <div className="flex gap-6">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: M3.onSurfaceVariant }}>Spent Today</p>
+                <p className="text-sm font-semibold" style={{ color: M3.onSurface }}>{symbol}{todaySpent.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: M3.onSurfaceVariant }}>Daily Limit</p>
+                <p className="text-sm font-semibold" style={{ color: M3.onSurface }}>{symbol}{totalDailyLimit.toLocaleString()}</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* 3-Column KPI widgets */}
+        <div className="grid grid-cols-3 gap-4">
+          <StatCard label="Net Balance" value={`${balance < 0 ? "-" : ""}${symbol}${Math.abs(balance).toLocaleString()}`}
             icon={Wallet} iconBg={M3.primaryContainer} iconColor={M3.onPrimaryContainer} index={0} />
-          <StatCard label="Income" value={`${symbol}${income.toLocaleString()}`}
+          <StatCard label="All-Time Income" value={`${symbol}${income.toLocaleString()}`}
             icon={ArrowUpRight} iconBg={M3.greenContainer} iconColor={M3.green} index={1} />
-          <StatCard label="Expenses" value={`${symbol}${totalExpense.toLocaleString()}`}
+          <StatCard label="All-Time Expenses" value={`${symbol}${totalExpense.toLocaleString()}`}
             icon={ArrowDownLeft} iconBg={M3.errorContainer} iconColor={M3.error} index={2} />
-          <StatCard
-            label="Net Worth" value={`${balance < 0 ? "-" : ""}${symbol}${Math.abs(balance).toLocaleString()}`}
-            icon={balance >= 0 ? TrendingUp : TrendingDown}
-            iconBg={balance >= 0 ? M3.greenContainer : M3.errorContainer}
-            iconColor={balance >= 0 ? M3.green : M3.error}
-            index={3}
-          />
         </div>
 
         {/* Charts row */}

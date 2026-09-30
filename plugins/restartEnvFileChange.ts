@@ -2,6 +2,17 @@ import type { Plugin } from 'vite';
 import path from 'node:path';
 import fs from 'node:fs';
 
+function readViteVars(file: string): string {
+  try {
+    return fs.readFileSync(file, 'utf-8')
+      .split('\n')
+      .filter((line) => line.startsWith('VITE_'))
+      .sort()
+      .join('\n');
+  } catch {
+    return '';
+  }
+}
 
 export function restartEnvFileChange(): Plugin {
   return {
@@ -20,9 +31,14 @@ export function restartEnvFileChange(): Plugin {
         .filter((file) => fs.existsSync(file));
 
       for (const file of filesToWatch) {
+        let snapshot = readViteVars(file);
         fs.watch(file, { persistent: false }, () => {
-          console.log(`[vite] Detected change in ${path.basename(file)}. Exiting for restart...`);
-          process.exit(0);
+          const current = readViteVars(file);
+          if (current !== snapshot) {
+            console.log(`[vite] VITE_ vars changed in ${path.basename(file)}. Exiting for restart...`);
+            process.exit(0);
+          }
+          snapshot = current;
         });
       }
     },

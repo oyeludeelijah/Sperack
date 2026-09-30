@@ -27,9 +27,17 @@ export default function ResetPasswordPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Supabase injects the recovery session from the reset link
+    // The PASSWORD_RECOVERY event may have already fired before this component
+    // mounted (AuthProvider catches auth state changes at the top level).
+    // So: check if a session already exists on mount — if it does, the recovery
+    // link worked and we can show the form immediately.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setIsReady(true);
+    });
+
+    // Fallback: also listen in case the event fires after mount
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         setIsReady(true);
       }
     });

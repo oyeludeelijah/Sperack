@@ -13,6 +13,7 @@ import { Download, TrendingUp, ChevronLeft, ChevronRight, X, ArrowUpRight, Arrow
 import { useAuth } from "@/hooks/useAuth.jsx";
 import { useCurrency } from "@/utils/useCurrency";
 import { useTransactions } from "@/hooks/useTransactions";
+import { useAllTimeTotals } from "@/hooks/useAllTimeTotals";
 
 import { M3, card } from "@/lib/theme";
 
@@ -58,16 +59,7 @@ export default function HistoryPage() {
     : [];
   const weekLabel = `${format(weekStart, "d MMM")} – ${format(weekEnd, "d MMM yyyy")}`;
 
-  const totalStats = transactions.reduce(
-    (acc, t) => {
-      const amt = parseFloat(t.amount);
-      if (t.type === "income") acc.income += amt;
-      else acc.expense += amt;
-      return acc;
-    },
-    { income: 0, expense: 0 }
-  );
-  const totalNet = totalStats.income - totalStats.expense;
+  const { income: totalIncome, expense: totalExpense, balance: totalNet } = useAllTimeTotals();
 
   const navBtn = {
     background: M3.surfaceContainerHighest,
