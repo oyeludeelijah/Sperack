@@ -128,8 +128,8 @@ export default function HistoryPage() {
             </p>
           </div>
           <div className="flex sm:block gap-4 text-left sm:text-right w-full sm:w-auto mt-2 sm:mt-0 space-y-0 sm:space-y-1 justify-between" style={{ color: "#ffffff99" }}>
-            <p className="text-[10px] md:text-xs">Total Inflows <br className="sm:hidden" /><span className="text-white font-semibold">{symbol}{totalStats.income.toLocaleString()}</span></p>
-            <p className="text-[10px] md:text-xs">Total Outflows <br className="sm:hidden" /><span className="text-white font-semibold">{symbol}{totalStats.expense.toLocaleString()}</span></p>
+            <p className="text-[10px] md:text-xs">Total Inflows <br className="sm:hidden" /><span className="text-white font-semibold">{symbol}{totalIncome.toLocaleString()}</span></p>
+            <p className="text-[10px] md:text-xs">Total Outflows <br className="sm:hidden" /><span className="text-white font-semibold">{symbol}{totalExpense.toLocaleString()}</span></p>
           </div>
         </div>
       </div>
