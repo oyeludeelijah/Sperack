@@ -80,3 +80,26 @@
     @apply outline-none focus:outline-none;
   }
 }
+
+/* ── Navigation active sliding indicator (zero forced reflow) ────────── */
+.nav-sliding-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: calc((100% - 12px) / 4);
+  transform: translateX(calc(var(--nav-idx, 0) * 100% + var(--nav-idx, 0) * 4px));
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (min-width: 768px) {
+  .nav-sliding-indicator {
+    bottom: auto;
+    width: 100%;
+    height: 44px;
+    transform: translateY(calc(var(--nav-idx, 0) * 100% + var(--nav-idx, 0) * 4px));
+  }
+}
+

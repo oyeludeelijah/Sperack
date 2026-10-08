@@ -2,7 +2,7 @@ import React from "react";
 import { LayoutDashboard, History, Target, LogOut, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth.jsx";
 import { useLocation, Link } from "react-router";
-import { motion, AnimatePresence } from "motion/react";
+import { m, AnimatePresence } from "motion/react";
 import { M3 } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -16,6 +16,7 @@ export default function Navigation() {
   const { signOut } = useAuth();
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
+  const activeIndex = navItems.findIndex((item) => item.path === location.pathname);
 
   return (
     <>
@@ -35,7 +36,7 @@ export default function Navigation() {
         onMouseLeave={(e) => (e.currentTarget.style.background = M3.surfaceContainerHigh)}
       >
         <AnimatePresence mode="wait" initial={false}>
-          <motion.span
+          <m.span
             key={isDark ? "sun-m" : "moon-m"}
             initial={{ rotate: -90, opacity: 0, scale: 0.6 }}
             animate={{ rotate: 0, opacity: 1, scale: 1 }}
@@ -44,7 +45,7 @@ export default function Navigation() {
             style={{ display: "flex" }}
           >
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
-          </motion.span>
+          </m.span>
         </AnimatePresence>
       </button>
 
@@ -66,11 +67,26 @@ export default function Navigation() {
         </div>
 
         {/* Nav items */}
-        <div className="flex flex-row md:flex-col gap-1 w-full md:w-auto flex-1 justify-around md:justify-start">
+        <div className="relative flex flex-row md:flex-col gap-1 w-full md:w-auto flex-1 justify-around md:justify-start">
+          {/* Active sliding pill + dot indicator (pure CSS transform transition, no forced reflow) */}
+          <div
+            className="nav-sliding-indicator rounded-xl md:rounded-full"
+            style={{
+              "--nav-idx": activeIndex,
+              background: M3.primaryContainer,
+              opacity: activeIndex >= 0 ? 1 : 0,
+            }}
+          >
+            <span
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full hidden md:block"
+              style={{ background: M3.primary }}
+            />
+          </div>
+
           {navItems.map((item, i) => {
             const isActive = location.pathname === item.path;
             return (
-              <motion.div
+              <m.div
                 key={item.path}
                 initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -79,7 +95,7 @@ export default function Navigation() {
               >
                 <Link
                   to={item.path}
-                  className="relative flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-2 py-2 md:px-4 md:py-3 rounded-xl md:rounded-full transition-colors duration-200 group w-full"
+                  className="relative flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-2 py-2 md:px-4 md:py-3 md:h-11 rounded-xl md:rounded-full transition-colors duration-200 group w-full"
                   style={{
                     color: isActive ? M3.onPrimaryContainer : M3.onSurfaceVariant,
                     fontWeight: isActive ? 600 : 400,
@@ -94,33 +110,17 @@ export default function Navigation() {
                     if (!isActive) e.currentTarget.style.background = "transparent";
                   }}
                 >
-                  {isActive && (
-                    <motion.span
-                      layoutId="nav-active-pill"
-                      className="absolute inset-0 rounded-xl md:rounded-full"
-                      style={{ background: M3.primaryContainer, zIndex: -1 }}
-                      transition={{ type: "spring", stiffness: 380, damping: 34 }}
-                    />
-                  )}
                   <item.icon size={24} className="md:w-5 md:h-5" />
                   <span className="text-[10px] md:text-sm font-medium">{item.name}</span>
-                  {isActive && (
-                    <motion.span
-                      layoutId="nav-active-dot"
-                      className="absolute right-3 w-2 h-2 rounded-full hidden md:block"
-                      style={{ background: M3.primary }}
-                      transition={{ type: "spring", stiffness: 380, damping: 34 }}
-                    />
-                  )}
                 </Link>
-              </motion.div>
+              </m.div>
             );
           })}
 
           {/* Sign out mobile inline */}
           <button
             onClick={signOut}
-            className="md:hidden relative flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 flex-1"
+            className="md:hidden relative flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 flex-1 z-10"
             style={{ color: M3.error }}
           >
             <LogOut size={24} />
@@ -142,7 +142,7 @@ export default function Navigation() {
           >
             {/* Animated icon */}
             <AnimatePresence mode="wait" initial={false}>
-              <motion.span
+              <m.span
                 key={isDark ? "moon" : "sun"}
                 initial={{ rotate: -90, opacity: 0, scale: 0.6 }}
                 animate={{ rotate: 0, opacity: 1, scale: 1 }}
@@ -151,12 +151,12 @@ export default function Navigation() {
                 style={{ display: "flex" }}
               >
                 {isDark ? <Sun size={18} /> : <Moon size={18} />}
-              </motion.span>
+              </m.span>
             </AnimatePresence>
 
             {/* Label */}
             <AnimatePresence mode="wait" initial={false}>
-              <motion.span
+              <m.span
                 key={isDark ? "light-label" : "dark-label"}
                 initial={{ opacity: 0, x: -6 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -165,7 +165,7 @@ export default function Navigation() {
                 className="text-sm font-medium"
               >
                 {isDark ? "Light Mode" : "Dark Mode"}
-              </motion.span>
+              </m.span>
             </AnimatePresence>
 
             {/* ── Neumorphic glow toggle ─────────────────────────────── */}
@@ -185,7 +185,7 @@ export default function Navigation() {
               {/* ON label in glow zone */}
               <AnimatePresence initial={false}>
                 {!isDark && (
-                  <motion.span
+                  <m.span
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -204,12 +204,12 @@ export default function Navigation() {
                     }}
                   >
                     ON
-                  </motion.span>
+                  </m.span>
                 )}
               </AnimatePresence>
 
               {/* Thumb */}
-              <motion.div
+              <m.div
                 animate={{ x: isDark ? 2 : 34 }}
                 transition={{ type: "spring", stiffness: 420, damping: 36 }}
                 style={{
@@ -234,7 +234,7 @@ export default function Navigation() {
                     ))
                   )}
                 </svg>
-              </motion.div>
+              </m.div>
             </div>
           </button>
 

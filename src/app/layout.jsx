@@ -5,7 +5,7 @@ import { useState } from "react";
 import { AuthProvider, useAuth } from "@/hooks/useAuth.jsx";
 import { Navigate, useLocation } from "react-router";
 import { Loader2 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m, LazyMotion, domAnimation } from "motion/react";
 import { ThemeProvider } from "@/context/ThemeContext";
 
 export const metadata = {
@@ -45,16 +45,17 @@ function AppShell({ children }) {
       {/* md:ml-64 offsets main content past the fixed 256px sidebar */}
       <main className="md:ml-64 p-4 md:p-8 pb-24 md:pb-8 min-h-screen">
         <div className="max-w-6xl mx-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
+          <AnimatePresence mode="wait" initial={false}>
+            <m.div
               key={location.pathname}
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.28, ease: "easeOut" }}
+              style={{ willChange: "opacity, transform" }}
             >
               {children}
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </div>
       </main>
@@ -81,8 +82,10 @@ export default function RootLayout({ children }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <Toaster position="top-center" richColors />
-          <AppShell>{children}</AppShell>
+          <LazyMotion features={domAnimation}>
+            <Toaster position="top-center" richColors />
+            <AppShell>{children}</AppShell>
+          </LazyMotion>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
