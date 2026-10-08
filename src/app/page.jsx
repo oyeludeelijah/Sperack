@@ -1,4 +1,4 @@
-import React, { useState, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
 import { Plus, ArrowUpRight, ArrowDownLeft, Wallet, ChevronRight, X, Trash2, Calculator as CalcIcon } from "lucide-react";
@@ -54,8 +54,23 @@ export default function Dashboard() {
   const { budgets } = useBudgets();
   const [showForm, setShowForm] = useState(false);
   const [showCalc, setShowCalc] = useState(false);
+  const [calcMounted, setCalcMounted] = useState(false);
+  const [loadCharts, setLoadCharts] = useState(false);
   const { symbol } = useCurrency();
   const { user } = useAuth();
+
+  useEffect(() => {
+    // Defer heavy chart bundle (Recharts) past first paint/hydration
+    if (typeof window !== "undefined") {
+      if ("requestIdleCallback" in window) {
+        const id = window.requestIdleCallback(() => setLoadCharts(true), { timeout: 1000 });
+        return () => window.cancelIdleCallback(id);
+      } else {
+        const timer = setTimeout(() => setLoadCharts(true), 200);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
 
   const [formData, setFormData] = useState({ amount: "", description: "", category: "Food", type: "expense" });
 
@@ -131,10 +146,12 @@ export default function Dashboard() {
 
   return (
     <>
-      {/* Calculator — lazy loaded */}
-      <Suspense fallback={null}>
-        <Calculator show={showCalc} onClose={() => setShowCalc(false)} appBalance={balance} />
-      </Suspense>
+      {/* Calculator — lazy loaded on first click, stays mounted for state persistence */}
+      {calcMounted && (
+        <Suspense fallback={null}>
+          <Calculator show={showCalc} onClose={() => setShowCalc(false)} appBalance={balance} />
+        </Suspense>
+      )}
 
       <div className="space-y-6">
         {/* Header */}
@@ -146,7 +163,10 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             {/* Calculator toggle */}
             <button
-              onClick={() => setShowCalc((v) => !v)}
+              onClick={() => {
+                setCalcMounted(true);
+                setShowCalc((v) => !v);
+              }}
               className="flex items-center justify-center rounded-full transition-all duration-200"
               title="Toggle Calculator"
               style={{
@@ -371,9 +391,13 @@ export default function Dashboard() {
             </div>
             <div className="h-[200px] md:h-[240px]">
               {monthlyData.length > 0 ? (
-                <Suspense fallback={<div className="h-[200px] md:h-[240px] w-full" />}>
-                  <MoneyFlowChart data={monthlyData} symbol={symbol} />
-                </Suspense>
+                loadCharts ? (
+                  <Suspense fallback={<div className="h-[200px] md:h-[240px] w-full" />}>
+                    <MoneyFlowChart data={monthlyData} symbol={symbol} />
+                  </Suspense>
+                ) : (
+                  <div className="h-[200px] md:h-[240px] w-full" />
+                )
               ) : (
                 <div className="h-full flex items-center justify-center" style={{ color: M3.onSurfaceVariant }}>
                   <p className="text-sm">No data yet — add transactions to see flow</p>
@@ -388,9 +412,13 @@ export default function Dashboard() {
             <p className="text-xs mb-4" style={{ color: M3.onSurfaceVariant }}>Expense breakdown</p>
             {categoryData.length > 0 ? (
               <div className="h-[200px] md:h-[240px]">
-                <Suspense fallback={<div className="h-[200px] md:h-[240px] w-full" />}>
-                  <CategoryPieChart data={categoryData} symbol={symbol} />
-                </Suspense>
+                {loadCharts ? (
+                  <Suspense fallback={<div className="h-[200px] md:h-[240px] w-full" />}>
+                    <CategoryPieChart data={categoryData} symbol={symbol} />
+                  </Suspense>
+                ) : (
+                  <div className="h-[200px] md:h-[240px] w-full" />
+                )}
               </div>
             ) : (
               <div className="h-[200px] md:h-[240px] flex items-center justify-center" style={{ color: M3.onSurfaceVariant }}>

@@ -1,0 +1,42 @@
+{
+  "results": [
+    {
+      "bundleName": "build/client/assets/page-Cp0NS2AJ.js",
+      "totalBytes": 401,
+      "mappedBytes": 0,
+      "unmappedBytes": 358,
+      "eolBytes": 2,
+      "sourceMapCommentBytes": 41,
+      "files": {
+        "[sourceMappingURL]": {
+          "size": 41
+        },
+        "[unmapped]": {
+          "size": 358
+        },
+        "[EOLs]": {
+          "size": 2
+        }
+      }
+    },
+    {
+      "bundleName": "build/client/assets/preload-helper-Cs-OUfxn.js",
+      "totalBytes": 1364,
+      "mappedBytes": 0,
+      "unmappedBytes": 1311,
+      "eolBytes": 2,
+      "sourceMapCommentBytes": 51,
+      "files": {
+        "[sourceMappingURL]": {
+          "size": 51
+        },
+        "[unmapped]": {
+          "size": 1311
+        },
+        "[EOLs]": {
+          "size": 2
+        }
+      }
+    }
+  ]
+}
