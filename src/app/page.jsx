@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import Calculator from "@/components/Calculator";
 
 import { Plus, ArrowUpRight, ArrowDownLeft, Wallet, ChevronRight, X, Trash2, Calculator as CalcIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -11,12 +10,12 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useBudgets } from "@/hooks/useBudgets";
 import { useAllTimeTotals } from "@/hooks/useAllTimeTotals";
 import { calculateDailySpent, calculateTotalDailyLimit } from "@/utils/financeMath";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, PieChart, Pie, Legend,
-} from "recharts";
 
-import { M3, card, inputStyle, CATEGORY_COLORS } from "@/lib/theme";
+import { M3, card, inputStyle } from "@/lib/theme";
+
+const MoneyFlowChart = React.lazy(() => import("@/components/charts/MoneyFlowChart"));
+const CategoryPieChart = React.lazy(() => import("@/components/charts/CategoryPieChart"));
+const Calculator = React.lazy(() => import("@/components/Calculator"));
 
 function StatCard({ label, value, icon: Icon, iconBg, iconColor, sub, positive, index = 0 }) {
   return (
@@ -48,21 +47,7 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, sub, positive, 
   );
 }
 
-const CustomTooltip = ({ active, payload, label, symbol }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div style={{ background: M3.surfaceContainerHighest, border: `1px solid ${M3.outline}`, borderRadius: 12, padding: "10px 14px" }}>
-        <p style={{ color: M3.onSurface, fontWeight: 600, marginBottom: 4 }}>{label}</p>
-        {payload.map((p) => (
-          <p key={p.name} style={{ color: p.fill, fontSize: 13 }}>
-            {p.name}: {symbol}{parseFloat(p.value).toLocaleString()}
-          </p>
-        ))}
-      </div>
-    );
-  }
-  return null;
-};
+
 
 export default function Dashboard() {
   const { transactions, addTransaction, isAdding, deleteTransaction } = useTransactions(100);
@@ -75,40 +60,70 @@ export default function Dashboard() {
   const [formData, setFormData] = useState({ amount: "", description: "", category: "Food", type: "expense" });
 
   const { income, expense: totalExpense, balance } = useAllTimeTotals();
-  const todaySpent = calculateDailySpent(transactions);
-  const totalDailyLimit = calculateTotalDailyLimit(budgets);
+  const todaySpent = useMemo(() => calculateDailySpent(transactions), [transactions]);
+  const totalDailyLimit = useMemo(() => calculateTotalDailyLimit(budgets), [budgets]);
   const dailySafeToSpend = totalDailyLimit - todaySpent;
 
-  // This month income / expense — computed from local transaction list
-  const monthStart = startOfMonth(new Date());
-  const thisMonthTxns = transactions.filter((t) => new Date(t.created_at) >= monthStart);
-  const thisMonthIncome = thisMonthTxns.filter((t) => t.type === "income").reduce((s, t) => s + parseFloat(t.amount), 0);
-  const thisMonthExpense = thisMonthTxns.filter((t) => t.type === "expense").reduce((s, t) => s + parseFloat(t.amount), 0);
-  const thisMonthNet = thisMonthIncome - thisMonthExpense;
+  // This month income / expense — computed in a single memoized pass
+  const { thisMonthIncome, thisMonthExpense, thisMonthNet } = useMemo(() => {
+    const monthStart = startOfMonth(new Date());
+    let inc = 0;
+    let exp = 0;
+    for (const t of transactions) {
+      if (new Date(t.created_at) >= monthStart) {
+        const amt = parseFloat(t.amount) || 0;
+        if (t.type === "income") inc += amt;
+        else if (t.type === "expense") exp += amt;
+      }
+    }
+    return {
+      thisMonthIncome: inc,
+      thisMonthExpense: exp,
+      thisMonthNet: inc - exp,
+    };
+  }, [transactions]);
 
-  // Money flow chart — last 6 months
-  const monthlyData = (() => {
+  // Money flow chart — last 6 months (memoized)
+  const monthlyData = useMemo(() => {
     const months = {};
-    transactions.forEach((t) => {
+    for (const t of transactions) {
       const key = format(new Date(t.created_at), "MMM");
       if (!months[key]) months[key] = { name: key, income: 0, expenses: 0 };
-      if (t.type === "income") months[key].income += parseFloat(t.amount);
-      else months[key].expenses += parseFloat(t.amount);
-    });
+      const amt = parseFloat(t.amount) || 0;
+      if (t.type === "income") months[key].income += amt;
+      else months[key].expenses += amt;
+    }
     return Object.values(months).slice(-6);
-  })();
+  }, [transactions]);
 
-  // Budget donut
-  const categoryData = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((acc, t) => {
-      const ex = acc.find((i) => i.name === t.category);
-      if (ex) ex.value += parseFloat(t.amount);
-      else acc.push({ name: t.category, value: parseFloat(t.amount) });
-      return acc;
-    }, [])
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 5);
+  // Budget donut — linear map aggregation (memoized)
+  const categoryData = useMemo(() => {
+    const catMap = {};
+    for (const t of transactions) {
+      if (t.type === "expense") {
+        const cat = t.category || "Other";
+        const amt = parseFloat(t.amount) || 0;
+        catMap[cat] = (catMap[cat] || 0) + amt;
+      }
+    }
+    return Object.entries(catMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+  }, [transactions]);
+
+  // Pre-calculated today's spent per category to avoid quadratic filtering inside budgets list
+  const todayCategorySpentMap = useMemo(() => {
+    const todayStr = new Date().toDateString();
+    const map = {};
+    for (const t of transactions) {
+      if (t.type === "expense" && new Date(t.created_at).toDateString() === todayStr) {
+        const cat = t.category || "Other";
+        map[cat] = (map[cat] || 0) + (parseFloat(t.amount) || 0);
+      }
+    }
+    return map;
+  }, [transactions]);
 
 
   const hour = new Date().getHours();
@@ -116,8 +131,10 @@ export default function Dashboard() {
 
   return (
     <>
-      {/* Calculator — always mounted so state persists across open/close */}
-      <Calculator show={showCalc} onClose={() => setShowCalc(false)} appBalance={balance} />
+      {/* Calculator — lazy loaded */}
+      <Suspense fallback={null}>
+        <Calculator show={showCalc} onClose={() => setShowCalc(false)} appBalance={balance} />
+      </Suspense>
 
       <div className="space-y-6">
         {/* Header */}
@@ -354,17 +371,9 @@ export default function Dashboard() {
             </div>
             <div className="h-[200px] md:h-[240px]">
               {monthlyData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={M3.outlineAlpha44} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false}
-                      style={{ fontSize: 11, fill: M3.onSurfaceVariant }} dy={8} />
-                    <YAxis axisLine={false} tickLine={false} style={{ fontSize: 11, fill: M3.onSurfaceVariant }} />
-                    <Tooltip content={<CustomTooltip symbol={symbol} />} cursor={{ fill: M3.primaryAlpha10 }} />
-                    <Bar dataKey="income" fill={M3.primary} radius={[6, 6, 0, 0]} barSize={18} />
-                    <Bar dataKey="expenses" fill={M3.error} radius={[6, 6, 0, 0]} barSize={18} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<div className="h-[200px] md:h-[240px] w-full" />}>
+                  <MoneyFlowChart data={monthlyData} symbol={symbol} />
+                </Suspense>
               ) : (
                 <div className="h-full flex items-center justify-center" style={{ color: M3.onSurfaceVariant }}>
                   <p className="text-sm">No data yet — add transactions to see flow</p>
@@ -379,21 +388,9 @@ export default function Dashboard() {
             <p className="text-xs mb-4" style={{ color: M3.onSurfaceVariant }}>Expense breakdown</p>
             {categoryData.length > 0 ? (
               <div className="h-[200px] md:h-[240px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={categoryData} cx="50%" cy="45%" innerRadius={50} outerRadius={80}
-                      dataKey="value" paddingAngle={3}>
-                      {categoryData.map((_, i) => (
-                        <Cell key={i} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip symbol={symbol} />} />
-                    <Legend
-                      formatter={(v) => <span style={{ color: M3.onSurfaceVariant, fontSize: 11 }}>{v}</span>}
-                      iconType="circle" iconSize={8}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<div className="h-[200px] md:h-[240px] w-full" />}>
+                  <CategoryPieChart data={categoryData} symbol={symbol} />
+                </Suspense>
               </div>
             ) : (
               <div className="h-[200px] md:h-[240px] flex items-center justify-center" style={{ color: M3.onSurfaceVariant }}>
@@ -421,13 +418,9 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-4">
                 {budgets.map((b) => {
-                  const spent = transactions
-                    .filter((t) => {
-                      if (t.type !== "expense" || t.category !== b.category) return false;
-                      return new Date(t.created_at).toDateString() === new Date().toDateString();
-                    })
-                    .reduce((s, t) => s + parseFloat(t.amount), 0);
-                  const pct = Math.min((spent / parseFloat(b.limit_amount)) * 100, 100);
+                  const spent = todayCategorySpentMap[b.category] || 0;
+                  const limitNum = parseFloat(b.limit_amount) || 1;
+                  const pct = Math.min((spent / limitNum) * 100, 100);
                   const over = pct >= 100;
                   return (
                     <div key={b.id}>

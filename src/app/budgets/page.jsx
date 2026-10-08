@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Target, Plus, TrendingUp, TrendingDown, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -14,14 +14,16 @@ export default function BudgetsPage() {
   const [formData, setFormData] = useState({ category: "Food", limit_amount: "" });
   const { symbol, setCurrency, CURRENCIES } = useCurrency();
 
-  const today = new Date();
-
   const { budgets, addBudget, isAdding, deleteBudget } = useBudgets();
   const { transactions } = useTransactions(100);
-  const budgetStats = getBudgetStats(budgets, transactions);
-  const totalLimit = calculateTotalDailyLimit(budgets);
-  const totalSpent = budgetStats.reduce((s, b) => s + b.spent, 0);
-  const overallPct = totalLimit > 0 ? Math.min((totalSpent / totalLimit) * 100, 100) : 0;
+
+  const { budgetStats, totalLimit, totalSpent, overallPct } = useMemo(() => {
+    const stats = getBudgetStats(budgets, transactions);
+    const limit = calculateTotalDailyLimit(budgets);
+    const spent = stats.reduce((s, b) => s + b.spent, 0);
+    const pct = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
+    return { budgetStats: stats, totalLimit: limit, totalSpent: spent, overallPct: pct };
+  }, [budgets, transactions]);
 
   return (
     <div className="space-y-6">

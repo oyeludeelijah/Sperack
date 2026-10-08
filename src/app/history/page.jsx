@@ -1,10 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell,
-} from "recharts";
 import {
   format, startOfWeek, endOfWeek, eachDayOfInterval,
   isSameDay, subWeeks, isToday,
@@ -17,19 +13,7 @@ import { useAllTimeTotals } from "@/hooks/useAllTimeTotals";
 
 import { M3, card } from "@/lib/theme";
 
-const CustomTooltip = ({ active, payload, label, symbol }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: M3.surfaceContainerHighest, border: `1px solid ${M3.outline}`, borderRadius: 12, padding: "10px 14px" }}>
-      <p style={{ color: M3.onSurface, fontWeight: 600, marginBottom: 4 }}>{label}</p>
-      {payload.map((p) => (
-        <p key={p.name} style={{ color: p.fill, fontSize: 13 }}>
-          {p.name}: {symbol}{parseFloat(p.value).toLocaleString()}
-        </p>
-      ))}
-    </div>
-  );
-};
+const WeeklyHistoryChart = React.lazy(() => import("@/components/charts/WeeklyHistoryChart"));
 
 export default function HistoryPage() {
   const { user } = useAuth();
@@ -39,25 +23,48 @@ export default function HistoryPage() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState(null);
 
-  const weekStart = startOfWeek(
-    weekOffset === 0 ? new Date() : subWeeks(new Date(), Math.abs(weekOffset)),
-    { weekStartsOn: 1 }
-  );
-  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
+  const { chartData, weekNet, weekLabel } = useMemo(() => {
+    const start = startOfWeek(
+      weekOffset === 0 ? new Date() : subWeeks(new Date(), Math.abs(weekOffset)),
+      { weekStartsOn: 1 }
+    );
+    const end = endOfWeek(start, { weekStartsOn: 1 });
+    const days = eachDayOfInterval({ start, end });
 
-  const chartData = weekDays.map((day) => {
-    const dayTxns = transactions.filter((t) => isSameDay(new Date(t.created_at), day));
-    const income = dayTxns.filter((t) => t.type === "income").reduce((s, t) => s + parseFloat(t.amount), 0);
-    const expenses = dayTxns.filter((t) => t.type === "expense").reduce((s, t) => s + parseFloat(t.amount), 0);
-    return { name: format(day, "EEE"), fullDate: format(day, "d MMM"), date: day, income, expenses, balance: income - expenses };
-  });
+    let net = 0;
+    const data = days.map((day) => {
+      let income = 0;
+      let expenses = 0;
+      for (const t of transactions) {
+        if (isSameDay(new Date(t.created_at), day)) {
+          const amt = parseFloat(t.amount) || 0;
+          if (t.type === "income") income += amt;
+          else if (t.type === "expense") expenses += amt;
+        }
+      }
+      const balance = income - expenses;
+      net += balance;
+      return {
+        name: format(day, "EEE"),
+        fullDate: format(day, "d MMM"),
+        date: day,
+        income,
+        expenses,
+        balance,
+      };
+    });
 
-  const weekNet = chartData.reduce((s, d) => s + d.balance, 0);
-  const dayTransactions = selectedDay
-    ? transactions.filter((t) => isSameDay(new Date(t.created_at), selectedDay))
-    : [];
-  const weekLabel = `${format(weekStart, "d MMM")} – ${format(weekEnd, "d MMM yyyy")}`;
+    return {
+      chartData: data,
+      weekNet: net,
+      weekLabel: `${format(start, "d MMM")} – ${format(end, "d MMM yyyy")}`,
+    };
+  }, [transactions, weekOffset]);
+
+  const dayTransactions = useMemo(() => {
+    if (!selectedDay) return [];
+    return transactions.filter((t) => isSameDay(new Date(t.created_at), selectedDay));
+  }, [transactions, selectedDay]);
 
   const { income: totalIncome, expense: totalExpense, balance: totalNet } = useAllTimeTotals();
 
@@ -155,38 +162,14 @@ export default function HistoryPage() {
           </div>
           <div className="overflow-x-auto pb-2">
             <div className="w-full min-w-[400px] h-[200px] md:h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={chartData}
-                margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
-                onClick={(e) => {
-                  if (e?.activePayload?.length > 0) {
-                    const d = e.activePayload[0].payload.date;
-                    setSelectedDay(prev => prev && isSameDay(prev, d) ? null : d);
-                  }
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={M3.outlineAlpha44} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false}
-                  style={{ fontSize: 11, fill: M3.onSurfaceVariant }} dy={8} />
-                <YAxis axisLine={false} tickLine={false} style={{ fontSize: 11, fill: M3.onSurfaceVariant }} />
-                <Tooltip content={<CustomTooltip symbol={symbol} />} cursor={{ fill: M3.primaryAlpha10 }} />
-                <Bar dataKey="income" radius={[6, 6, 0, 0]} barSize={22} cursor="pointer">
-                  {chartData.map((entry, i) => (
-                    <Cell key={i}
-                      fill={selectedDay && isSameDay(selectedDay, entry.date) ? M3.onPrimaryContainer : M3.primary}
-                    />
-                  ))}
-                </Bar>
-                <Bar dataKey="expenses" radius={[6, 6, 0, 0]} barSize={22} cursor="pointer">
-                  {chartData.map((entry, i) => (
-                    <Cell key={i}
-                      fill={selectedDay && isSameDay(selectedDay, entry.date) ? "#FF6B6B" : M3.error}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+              <Suspense fallback={<div className="w-full min-w-[400px] h-[200px] md:h-[300px]" />}>
+                <WeeklyHistoryChart
+                  chartData={chartData}
+                  symbol={symbol}
+                  selectedDay={selectedDay}
+                  onSelectDay={(d) => setSelectedDay(prev => prev && isSameDay(prev, d) ? null : d)}
+                />
+              </Suspense>
             </div>
           </div>
         </div>

@@ -38,22 +38,21 @@ export default function Calculator({ show, onClose, appBalance = 0 }) {
   };
 
   // ── Layout ────────────────────────────────────────────────────────
-  const [isMobile, setIsMobile] = useState(false);
-  const [pos, setPos] = useState({ x: 0, y: 90 });
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+  const [pos, setPos] = useState(() => ({
+    x: typeof window !== "undefined" ? Math.max(window.innerWidth - 310, 20) : 0,
+    y: 90,
+  }));
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
   const posRef = useRef(pos);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
-    check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
-  }, []);
-
-  // Desktop initial position (right side, near header)
-  useEffect(() => {
-    setPos({ x: Math.max(window.innerWidth - 310, 20), y: 90 });
   }, []);
 
   useEffect(() => { posRef.current = pos; }, [pos]);
@@ -67,14 +66,26 @@ export default function Calculator({ show, onClose, appBalance = 0 }) {
   }, [isMobile]);
 
   useEffect(() => {
+    let rafId = null;
     const onMouseMove = (e) => {
       if (!dragging.current) return;
-      setPos({ x: e.clientX - offset.current.x, y: e.clientY - offset.current.y });
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        setPos({ x: e.clientX - offset.current.x, y: e.clientY - offset.current.y });
+        rafId = null;
+      });
     };
-    const onMouseUp = () => { dragging.current = false; };
+    const onMouseUp = () => {
+      dragging.current = false;
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    };
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
