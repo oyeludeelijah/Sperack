@@ -276,7 +276,7 @@ export default function Dashboard() {
           }}
         >
           <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#D0BCFFaa" }}>All-Time Net Position</p>
-          <div className="flex flex-col sm:flex-row justify-between items-end gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
             <div>
               <h2 className="text-4xl font-bold" style={{ color: "#fff" }}>
                 {balance < 0 ? "-" : ""}{symbol}{Math.abs(balance).toLocaleString()}
